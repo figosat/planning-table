@@ -1,0 +1,841 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Planning Table</title>
+<meta name="description" content="Scrum poker for refinement sessions: sealed votes revealed together, spread analysis and a log of estimated stories.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='4' y='5' width='16' height='22' rx='3' fill='%232e55c9' transform='rotate(-12 12 16)'/%3E%3Crect x='11' y='4' width='16' height='22' rx='3' fill='white' stroke='%2317212c' stroke-width='2'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one shared "table" of face-down seats, the player's hand docked at the bottom, finished stories in a side rail. */
+:root {
+  --bg: #edf0f3;
+  --surface: #ffffff;
+  --surface-2: #f5f7fa;
+  --table: #dde5ee;
+  --ink: #17212c;
+  --muted: #586776;
+  --line: #d3dbe3;
+  --accent: #2e55c9;
+  --accent-soft: #dfe7fb;
+  --accent-ink: #ffffff;
+  --ok: #1d7f54;
+  --warn: #a8600f;
+  --danger: #b3312b;
+  --shadow: 0 1px 2px rgba(23, 33, 44, .08), 0 4px 14px rgba(23, 33, 44, .07);
+  --f-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f141a; --surface: #18202a; --surface-2: #1d2631; --table: #142029;
+    --ink: #e5ebf1; --muted: #93a0ad; --line: #2c3845;
+    --accent: #7d9cff; --accent-soft: #1f2b4a; --accent-ink: #0f141a;
+    --ok: #4cc28c; --warn: #e2a04a; --danger: #f07a72;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 4px 14px rgba(0, 0, 0, .3);
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+:root { padding-top: env(safe-area-inset-top, 0px); }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.15; }
+p { margin: 0; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.label { font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.muted { color: var(--muted); }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+
+/* Buttons */
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; font-weight: 600; font-size: 14px; }
+.btn:hover:not(:disabled) { border-color: var(--muted); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.primary:hover:not(:disabled) { filter: brightness(1.08); border-color: var(--accent); }
+.btn.ghost { background: transparent; border-color: transparent; color: var(--muted); padding-inline: 10px; }
+.btn.ghost:hover:not(:disabled) { color: var(--ink); border-color: var(--line); }
+.btn.danger { color: var(--danger); }
+.field { display: grid; gap: 6px; }
+.input { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
+
+/* Top bar */
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); }
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--surface); border-bottom: 1px solid var(--line); }
+.topin { display: flex; align-items: center; gap: 14px; min-height: 58px; }
+.brand { display: flex; align-items: center; gap: 10px; background: none; border: 0; cursor: pointer; padding: 4px 0; font-family: var(--f-display); font-weight: 800; font-size: 19px; letter-spacing: -.01em; white-space: nowrap; }
+.brand-mark { width: 22px; height: 28px; position: relative; }
+.brand-mark i { position: absolute; inset: 0; border-radius: 4px; border: 1.5px solid var(--ink); background: var(--surface); }
+.brand-mark i:first-child { transform: rotate(-12deg) translateX(-3px); background: var(--accent); border-color: var(--accent); }
+.crumb { display: flex; align-items: center; gap: 10px; min-width: 0; color: var(--muted); }
+.crumb strong { color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+.me { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--muted); white-space: nowrap; }
+.av { width: 26px; height: 26px; border-radius: 50%; flex: none; display: inline-grid; place-items: center; color: #fff; font-size: 11px; font-weight: 600; font-family: var(--f-body); letter-spacing: 0; }
+@media (max-width: 640px) { .me .nm, .crumb .sep, .crumb .chip { display: none; } }
+
+.notice { margin-top: 16px; padding: 12px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface-2); color: var(--muted); }
+
+main { padding-block: 28px 48px; }
+main.in-room { padding-bottom: 210px; }
+
+/* Name gate */
+.gate { max-width: 440px; margin: 32px auto 0; }
+
+/* Lobby */
+.lobby-head { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 32px; align-items: center; }
+@media (max-width: 820px) { .lobby-head { grid-template-columns: 1fr; } }
+.intro h1 { font-size: clamp(30px, 4.4vw, 46px); font-weight: 800; letter-spacing: -.02em; max-width: 14ch; }
+.intro p { color: var(--muted); max-width: 52ch; margin-top: 14px; font-size: 16px; }
+.fan { display: flex; margin: 26px 0 0 8px; height: 104px; }
+.fan .card { margin-left: -14px; box-shadow: var(--shadow); }
+.fan .card:nth-child(1) { transform: rotate(-14deg) translateY(10px); }
+.fan .card:nth-child(2) { transform: rotate(-8deg) translateY(3px); }
+.fan .card:nth-child(3) { transform: rotate(-2deg); }
+.fan .card:nth-child(4) { transform: rotate(4deg) translateY(2px); }
+.fan .card:nth-child(5) { transform: rotate(10deg) translateY(8px); }
+.fan .card:nth-child(6) { transform: rotate(16deg) translateY(16px); }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 22px; display: grid; gap: 14px; box-shadow: var(--shadow); }
+.panel h2 { font-size: 20px; }
+.section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 40px 0 14px; }
+.section-head h2 { font-size: 22px; }
+.rooms { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 12px; }
+.room-card { text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 10px; cursor: pointer; min-width: 0; }
+.room-card:hover { border-color: var(--accent); }
+.room-card h3 { font-size: 18px; overflow-wrap: anywhere; }
+.room-card .story-line { color: var(--muted); font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.room-meta { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); flex-wrap: wrap; }
+.room-meta .av { width: 20px; height: 20px; font-size: 9px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px; border-radius: 99px; background: var(--surface-2); border: 1px solid var(--line); font-size: 12px; color: var(--muted); font-weight: 500; white-space: nowrap; }
+.chip.live { color: var(--accent); border-color: var(--accent-soft); background: var(--accent-soft); }
+.empty { border: 1.5px dashed var(--line); border-radius: 12px; padding: 28px; color: var(--muted); text-align: center; }
+
+/* Cards */
+.card { --w: 56px; width: var(--w); aspect-ratio: 5 / 7; flex: none; border-radius: calc(var(--w) * .13); background: var(--surface); border: 1px solid var(--line); position: relative; display: grid; place-items: center; font-family: var(--f-mono); font-weight: 600; font-size: calc(var(--w) * .36); color: var(--ink); padding: 0; }
+.card .ix { position: absolute; font-size: calc(var(--w) * .16); line-height: 1; top: 6%; left: 9%; color: var(--muted); }
+.card .ix.b { top: auto; left: auto; bottom: 6%; right: 9%; transform: rotate(180deg); }
+.card svg { width: 46%; height: auto; }
+.card.back { background-color: var(--accent); border-color: var(--accent); background-image: repeating-linear-gradient(45deg, transparent 0 5px, rgba(255, 255, 255, .16) 5px 6px), repeating-linear-gradient(-45deg, transparent 0 5px, rgba(255, 255, 255, .16) 5px 6px); box-shadow: inset 0 0 0 3px var(--accent), inset 0 0 0 4px rgba(255, 255, 255, .5); }
+.card.slot { background: transparent; border: 1.5px dashed var(--muted); opacity: .45; }
+.card.wait { background: var(--surface-2); color: var(--muted); font-size: calc(var(--w) * .22); }
+.card.big { --w: 64px; }
+.card.mini { --w: 26px; border-radius: 4px; }
+.card.mini .ix { display: none; }
+.card.flip { animation: flip .45s ease-out both; }
+@keyframes flip { from { transform: rotateY(90deg); } to { transform: rotateY(0); } }
+
+/* Room */
+.room-grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 24px; align-items: start; }
+@media (max-width: 900px) { .room-grid { grid-template-columns: 1fr; } }
+.story { display: grid; gap: 8px; }
+.story-row { display: flex; gap: 10px; align-items: center; }
+.story-row .input { font-family: var(--f-display); font-weight: 600; font-size: 20px; padding: 10px 14px; }
+.table { margin-top: 18px; background: var(--table); border-radius: 28px; padding: 26px 22px 20px; display: grid; gap: 20px; border: 1px solid var(--line); }
+.seats { display: flex; flex-wrap: wrap; justify-content: center; gap: 18px 22px; min-height: 120px; align-items: flex-start; }
+.seat { display: grid; justify-items: center; gap: 8px; width: 84px; position: relative; }
+.seat .who { display: flex; align-items: center; gap: 5px; font-size: 12.5px; max-width: 100%; }
+.seat .who span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.seat .who .av { width: 18px; height: 18px; font-size: 8px; }
+.seat .tag { font-size: 11px; color: var(--muted); }
+.seat .kick { position: absolute; top: -6px; right: 4px; width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--muted); cursor: pointer; line-height: 1; opacity: 0; font-size: 14px; padding: 0; }
+.seat:hover .kick, .seat .kick:focus-visible { opacity: 1; }
+@media (hover: none) { .seat .kick { opacity: .7; } }
+.seat.low .card, .seat.high .card { box-shadow: 0 0 0 3px var(--warn); }
+.status { text-align: center; color: var(--muted); font-size: 14px; }
+.status b { color: var(--ink); }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+
+.results { margin-top: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px; display: grid; gap: 20px; }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 620px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.stat { background: var(--surface-2); border-radius: 10px; padding: 12px 14px; display: grid; gap: 2px; min-width: 0; }
+.stat .v { font-family: var(--f-mono); font-variant-numeric: tabular-nums; font-size: 24px; font-weight: 600; }
+.stat .v.ok { color: var(--ok); }
+.stat .v.warn { color: var(--warn); }
+.verdict { padding: 10px 14px; border-radius: 8px; font-size: 14px; border: 1px solid var(--line); }
+.verdict.ok { color: var(--ok); border-color: currentColor; }
+.verdict.warn { color: var(--warn); border-color: currentColor; }
+.dist { display: grid; gap: 8px; }
+.dist-row { display: grid; grid-template-columns: 30px minmax(0, 1fr) 24px; align-items: center; gap: 12px; }
+.bar { height: 22px; border-radius: 5px; background: var(--surface-2); position: relative; overflow: hidden; }
+.bar i { position: absolute; inset: 0 auto 0 0; background: var(--muted); opacity: .35; border-radius: 5px; }
+.bar i.top { background: var(--accent); opacity: 1; }
+.bar .names { position: absolute; inset: 0; display: flex; align-items: center; padding-left: 8px; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.save { display: grid; grid-template-columns: 150px minmax(0, 1fr) auto; gap: 12px; align-items: end; border-top: 1px solid var(--line); padding-top: 18px; }
+@media (max-width: 620px) { .save { grid-template-columns: 1fr; } }
+
+.side { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: grid; gap: 14px; }
+.side h3 { font-size: 17px; }
+.total { display: flex; align-items: baseline; gap: 8px; }
+.total .mono { font-size: 28px; font-weight: 600; }
+.hist { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; max-height: 460px; overflow-y: auto; }
+.hist li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 4px; border-top: 1px solid var(--line); }
+.hist li:first-child { border-top: 0; }
+.hist li.none { display: block; color: var(--muted); font-size: 13.5px; }
+.hist .t { font-size: 14px; overflow-wrap: anywhere; }
+.hist .m { font-size: 12px; color: var(--muted); }
+.hist .del { opacity: 0; }
+.hist li:hover .del, .hist .del:focus-visible { opacity: 1; }
+@media (hover: none) { .hist .del { opacity: .7; } }
+.side-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* Hand */
+.handbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; background: var(--surface); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom, 0px); box-shadow: 0 -6px 18px rgba(23, 33, 44, .06); }
+.handbar .wrap { display: grid; gap: 4px; padding-block: 10px 12px; }
+.hand-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.hand-head .hint { font-size: 12.5px; color: var(--muted); }
+.hand { display: flex; gap: 10px; overflow-x: auto; padding: 16px 4px 4px; scrollbar-width: thin; }
+.hand button.card { cursor: pointer; transition: transform .15s ease, box-shadow .15s ease; }
+.hand button.card:hover:not(:disabled) { transform: translateY(-6px); box-shadow: var(--shadow); }
+.hand button.card.sel { transform: translateY(-12px); border: 2px solid var(--accent); box-shadow: 0 0 0 3px var(--accent-soft), var(--shadow); }
+
+.toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 20; background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 8px; font-size: 14px; max-width: calc(100% - 32px); box-shadow: var(--shadow); }
+main.in-room ~ .toast { bottom: calc(190px + env(safe-area-inset-bottom, 0px)); }
+
+@media (prefers-reduced-motion: reduce) {
+  .card.flip { animation: none; }
+  .hand button.card { transition: none; }
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap topin">
+    <button class="brand" id="homeBtn" type="button" aria-label="Back to all rooms"><span class="brand-mark" aria-hidden="true"><i></i><i></i></span>Planning Table</button>
+    <div class="crumb" id="crumb"></div>
+    <div class="me" id="meChip"></div>
+  </div>
+</header>
+<div class="wrap"><div class="notice" id="notice" hidden></div></div>
+
+<main class="wrap" id="main">
+  <section id="nameGate" hidden>
+    <form class="panel gate" id="nameForm" autocomplete="off">
+      <h2>What should your team call you?</h2>
+      <p class="muted">Your name appears next to your card. It is saved in this browser only.</p>
+      <label class="field"><span class="label">Display name</span><input class="input" id="nameInput" maxlength="30" placeholder="Abdelaziz" required></label>
+      <button class="btn primary" type="submit">Continue</button>
+    </form>
+  </section>
+
+  <section id="lobby" hidden>
+    <div class="lobby-head">
+      <div class="intro">
+        <h1>Estimate together, reveal together.</h1>
+        <p>Open a room for your refinement session and share its link. Everyone picks a card in private; nobody sees a number until the team reveals, so the first voice in the room doesn't anchor the rest.</p>
+        <div class="fan" aria-hidden="true" id="fan"></div>
+      </div>
+      <form class="panel" id="createForm" autocomplete="off">
+        <h2>Open a new room</h2>
+        <label class="field"><span class="label">Room name</span><input class="input" id="roomName" maxlength="60" placeholder="Sprint 42 refinement" required></label>
+        <label class="field"><span class="label">Card deck</span>
+          <select class="input" id="roomDeck"></select>
+        </label>
+        <button class="btn primary" id="createBtn" type="submit">Open room</button>
+      </form>
+    </div>
+    <div class="section-head"><h2>Rooms</h2><span class="label" id="roomCount"></span></div>
+    <div class="rooms" id="roomList"><div class="empty">Loading rooms…</div></div>
+  </section>
+
+  <section id="roomView" hidden>
+    <div class="room-grid">
+      <div>
+        <div class="story">
+          <label class="label" for="storyInput">Story being estimated</label>
+          <div class="story-row">
+            <input class="input" id="storyInput" maxlength="160" placeholder="Ticket key and title, e.g. COUL-1234 Export invoices to CSV">
+            <span class="chip mono" id="roundChip"></span>
+          </div>
+        </div>
+        <div class="table">
+          <div class="seats" id="seats"></div>
+          <div class="status" id="status"></div>
+          <div class="actions">
+            <button class="btn primary" id="revealBtn" type="button">Reveal cards</button>
+            <button class="btn" id="revoteBtn" type="button">Clear and re-vote</button>
+            <button class="btn ghost" id="roleBtn" type="button"></button>
+          </div>
+        </div>
+        <div class="results" id="results" hidden>
+          <div class="stats" id="stats"></div>
+          <div id="verdict"></div>
+          <div class="dist" id="dist"></div>
+          <form class="save" id="saveForm" autocomplete="off">
+            <label class="field"><span class="label">Final estimate</span><select class="input mono" id="finalSelect"></select></label>
+            <label class="field"><span class="label">Next story (optional)</span><input class="input" id="nextStory" maxlength="160" placeholder="COUL-1235 …"></label>
+            <button class="btn primary" type="submit">Save and next story</button>
+          </form>
+        </div>
+      </div>
+      <aside class="side">
+        <h3>Estimated stories</h3>
+        <div class="total" id="total"></div>
+        <ol class="hist" id="hist"></ol>
+        <div class="side-actions">
+          <button class="btn" id="inviteBtn" type="button">Copy invite link</button>
+          <button class="btn ghost" id="leaveBtn" type="button">Leave room</button>
+        </div>
+      </aside>
+    </div>
+  </section>
+</main>
+
+<div class="handbar" id="handbar" hidden>
+  <div class="wrap">
+    <div class="hand-head"><span class="label">Your hand</span><span class="hint" id="handHint"></span></div>
+    <div class="hand" id="hand" role="group" aria-label="Pick your estimate"></div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script type="module">
+import { firebaseConfig } from "./config.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, collection, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const DECKS = {
+  fib:    { label: "Fibonacci", cards: ["0", "1", "2", "3", "5", "8", "13", "21", "34", "?", "break"] },
+  mfib:   { label: "Modified Fibonacci", cards: ["0", "½", "1", "2", "3", "5", "8", "13", "20", "40", "100", "?", "break"] },
+  tshirt: { label: "T-shirt sizes", cards: ["XS", "S", "M", "L", "XL", "XXL", "?", "break"] },
+  pow2:   { label: "Powers of 2", cards: ["0", "1", "2", "4", "8", "16", "32", "64", "?", "break"] },
+};
+const BREAK = "break";
+const CUP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h12v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V9z"/><path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16"/><path d="M8 3c0 1.5 1 1.5 1 3M12 3c0 1.5 1 1.5 1 3"/></svg>';
+const NAME_KEY = "planning-table:name";
+
+const $ = (id) => document.getElementById(id);
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v == null || v === false) continue;
+    if (k === "class") el.className = v;
+    else if (k === "text") el.textContent = v;
+    else if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+    else el.setAttribute(k, v === true ? "" : v);
+  }
+  for (const k of kids.flat()) if (k != null && k !== false) el.append(k.nodeType ? k : document.createTextNode(String(k)));
+  return el;
+}
+const load = (k) => { try { return localStorage.getItem(k) || ""; } catch (_) { return ""; } };
+const save = (k, v) => { try { localStorage.setItem(k, v); } catch (_) {} };
+
+/* ---------- Firestore adapter: same small surface the page was written against ---------- */
+let fs = null;
+const wrapDoc = (d) => ({ id: d.id, exists: d.exists(), data: () => d.data(), metadata: d.metadata });
+function docRef(path) {
+  const r = doc(fs, path);
+  return {
+    id: r.id, path,
+    get: async () => wrapDoc(await getDoc(r)),
+    set: (data) => setDoc(r, data),
+    update: (data) => updateDoc(r, data),
+    delete: () => deleteDoc(r),
+    onSnapshot: (next, err) => onSnapshot(r, (d) => next(wrapDoc(d)), err),
+  };
+}
+function collRef(path, cons = []) {
+  const base = collection(fs, path);
+  const q = () => (cons.length ? query(base, ...cons) : base);
+  return {
+    path,
+    doc: (id) => docRef(path + "/" + (id || doc(base).id)),
+    orderBy: (f, d) => collRef(path, [...cons, orderBy(f, d || "asc")]),
+    limit: (n) => collRef(path, [...cons, limit(n)]),
+    onSnapshot: (next, err) => onSnapshot(q(), (s) => next({ docs: s.docs.map(wrapDoc), metadata: s.metadata }), err),
+  };
+}
+const DB = { doc: docRef, collection: (p) => collRef(p) };
+
+const S = {
+  db: null, meId: null, myName: "", canWrite: false, ready: false, problem: "",
+  rooms: null, roomId: null, room: null, players: [], history: [], myPick: null,
+  roomUnsubs: [], sharedKey: null, finalRound: null, finalTouched: false,
+  revealSeen: null, lobbyDeleteArm: null, pendingRoom: null,
+};
+
+/* ---------- helpers ---------- */
+const deckOf = (r) => DECKS[r?.deck] || DECKS.fib;
+const num = (v) => v === "½" ? 0.5 : (/^\d+(\.\d+)?$/.test(v) ? Number(v) : null);
+const isOrdinal = (v) => v !== "?" && v !== BREAK;
+const fmt = (n) => n == null ? "–" : (Math.round(n * 10) / 10).toString();
+function ago(t) {
+  if (!t) return "";
+  const s = Math.max(0, (Date.now() - t) / 1000);
+  if (s < 60) return "just now";
+  if (s < 3600) return Math.floor(s / 60) + " min ago";
+  if (s < 86400) return Math.floor(s / 3600) + " h ago";
+  return new Date(t).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+}
+function cardEl(value, opts = {}) {
+  const el = h(opts.button ? "button" : "div", { class: "card" + (opts.cls ? " " + opts.cls : ""), type: opts.button ? "button" : null });
+  if (value == null) return el;
+  if (value === BREAK) { el.innerHTML = CUP; el.setAttribute("aria-label", "Coffee break"); }
+  else {
+    el.append(value);
+    if (!opts.noIx) el.append(h("span", { class: "ix", "aria-hidden": "true" }, value), h("span", { class: "ix b", "aria-hidden": "true" }, value));
+    el.setAttribute("aria-label", value === "?" ? "Not sure" : value);
+  }
+  return el;
+}
+const cardLabel = (v) => v === BREAK ? "coffee break" : v;
+function nameOf(id) {
+  if (id === S.meId && S.myName) return S.myName;
+  const p = S.players.find((x) => x.id === id);
+  if (p && p.name) return p.name;
+  const r = (S.rooms || []).find((x) => x.createdBy === id && x.createdByName);
+  return r ? r.createdByName : "Teammate";
+}
+function avatar(id) {
+  const n = nameOf(id);
+  const hue = [...String(id)].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 360, 7);
+  const ini = n.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("") || "?";
+  return h("span", { class: "av", style: "background:hsl(" + hue + " 50% 42%)", "aria-hidden": "true" }, ini);
+}
+
+let toastTimer;
+function toast(msg) {
+  const t = $("toast"); t.textContent = msg; t.hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 4200);
+}
+function errMsg(e) {
+  switch (e && e.code) {
+    case "permission-denied": return "That change was refused by the database rules.";
+    case "resource-exhausted": return "The free daily database quota is used up. It resets at midnight Pacific time.";
+    case "unavailable": return "You're offline. Changes will sync when the connection is back.";
+    default: return "Couldn't save that change. Check your connection and try again.";
+  }
+}
+// One write at a time per document keeps last-writer-wins predictable.
+const queues = {};
+function enqueue(key, fn) {
+  const p = (queues[key] || Promise.resolve()).catch(() => {}).then(fn);
+  queues[key] = p;
+  return p.catch((e) => { toast(errMsg(e)); throw e; });
+}
+
+/* ---------- refs ---------- */
+const roomRef = (id = S.roomId) => S.db.doc("rooms/" + id);
+const playerRef = (uid = S.meId) => S.db.doc("rooms/" + S.roomId + "/players/" + uid);
+const pickRef = () => S.db.doc("users/" + S.meId + "/picks/" + S.roomId);
+const myPlayer = () => S.players.find((p) => p.id === S.meId) || null;
+const canVote = () => S.canWrite && S.meId && (myPlayer()?.role !== "observer");
+const hashRoom = () => { const v = decodeURIComponent(location.hash.slice(1)); return /^[a-z0-9-]{3,40}$/.test(v) ? v : null; };
+
+/* ---------- boot ---------- */
+function init() {
+  buildStatic();
+  S.myName = load(NAME_KEY);
+  S.pendingRoom = hashRoom();
+  renderAll();
+  if (!firebaseConfig || String(firebaseConfig.apiKey).startsWith("REPLACE")) {
+    S.ready = true; S.rooms = [];
+    S.problem = "This copy isn't connected to a database yet. Paste your Firebase web config into config.js (see README).";
+    renderAll(); return;
+  }
+  let auth;
+  try {
+    const app = initializeApp(firebaseConfig);
+    auth = getAuth(app); fs = getFirestore(app);
+  } catch (e) {
+    S.ready = true; S.rooms = []; S.problem = "The Firebase config in config.js is invalid."; renderAll(); return;
+  }
+  onAuthStateChanged(auth, (u) => {
+    if (!u || S.meId) return;
+    S.meId = u.uid; S.db = DB; S.canWrite = true; S.ready = true;
+    start();
+  });
+  signInAnonymously(auth).catch(() => {
+    S.ready = true; S.rooms = [];
+    S.problem = "Sign-in failed. In Firebase console, enable Authentication > Sign-in method > Anonymous.";
+    renderAll();
+  });
+}
+
+function start() {
+  S.db.collection("rooms").orderBy("updatedAt", "desc").limit(60).onSnapshot((snap) => {
+    S.rooms = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    renderAll();
+  }, (e) => { S.rooms = S.rooms || []; toast(errMsg(e)); renderAll(); });
+  if (S.myName && S.pendingRoom) { const r = S.pendingRoom; S.pendingRoom = null; enterRoom(r); }
+  renderAll();
+}
+
+function setName(e) {
+  e.preventDefault();
+  const n = $("nameInput").value.trim().slice(0, 30);
+  if (!n) return;
+  S.myName = n; save(NAME_KEY, n);
+  if (S.roomId && myPlayer()) upsertMe({ name: n }).catch(() => {});
+  if (S.db && S.pendingRoom) { const r = S.pendingRoom; S.pendingRoom = null; enterRoom(r); }
+  S.editingName = false;
+  renderAll();
+}
+
+/* ---------- lobby actions ---------- */
+async function createRoom(e) {
+  e.preventDefault();
+  if (!S.db) return toast("The database isn't connected yet.");
+  const name = $("roomName").value.trim();
+  if (!name) return;
+  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 28) || "room";
+  const id = slug + "-" + Math.random().toString(36).slice(2, 7);
+  const now = Date.now();
+  $("createBtn").disabled = true;
+  try {
+    await roomRef(id).set({ name, deck: $("roomDeck").value, story: "", round: 1, revealed: false, createdBy: S.meId, createdByName: S.myName, createdAt: now, updatedAt: now });
+    $("roomName").value = "";
+    enterRoom(id);
+  } catch (err) { toast(errMsg(err)); }
+  finally { $("createBtn").disabled = false; }
+}
+async function deleteRoom(id) {
+  if (S.lobbyDeleteArm !== id) { S.lobbyDeleteArm = id; renderLobby(); return; }
+  S.lobbyDeleteArm = null;
+  try { await roomRef(id).delete(); toast("Room deleted."); } catch (err) { toast(errMsg(err)); }
+}
+
+/* ---------- room lifecycle ---------- */
+function leaveSubs() { S.roomUnsubs.forEach((u) => u()); S.roomUnsubs = []; }
+async function enterRoom(id) {
+  if (!S.db) { S.pendingRoom = id; return; }
+  leaveSubs();
+  Object.assign(S, { roomId: id, room: null, players: [], history: [], myPick: null, sharedKey: null, finalRound: null, finalTouched: false, revealSeen: null });
+  if (location.hash.slice(1) !== id) history.replaceState(null, "", "#" + id);
+  window.scrollTo(0, 0);
+  renderAll();
+  const after = () => { maybeSharePick(); renderAll(); };
+  S.roomUnsubs.push(roomRef(id).onSnapshot((d) => {
+    if (!d.exists) { if (!d.metadata.fromCache) { toast("This room no longer exists."); goLobby(); } return; }
+    const prev = S.room;
+    S.room = { id, ...d.data() };
+    if (prev && prev.round !== S.room.round) { $("nextStory").value = ""; S.finalTouched = false; }
+    after();
+  }, (e) => toast(errMsg(e))));
+  S.roomUnsubs.push(S.db.collection("rooms/" + id + "/players").orderBy("joinedAt").onSnapshot((snap) => {
+    S.players = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    after();
+  }, () => {}));
+  S.roomUnsubs.push(S.db.collection("rooms/" + id + "/history").orderBy("at", "desc").limit(200).onSnapshot((snap) => {
+    S.history = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    renderRoom();
+  }, () => {}));
+  S.roomUnsubs.push(pickRef().onSnapshot((d) => {
+    if (d.exists) S.myPick = d.data();
+    after();
+  }, () => {}));
+  try {
+    const me = await playerRef().get();
+    if (!me.exists) await enqueue("player", () => playerRef().set({ name: S.myName, joinedAt: Date.now(), role: "voter", votedRound: -1, value: null, valueRound: -1 }));
+    else if (me.data().name !== S.myName) upsertMe({ name: S.myName }).catch(() => {});
+  } catch (_) {}
+}
+function goLobby() {
+  leaveSubs();
+  Object.assign(S, { roomId: null, room: null, players: [], history: [], myPick: null });
+  history.replaceState(null, "", location.pathname + location.search);
+  renderAll();
+}
+async function leaveRoom() {
+  if (myPlayer()) { try { await playerRef().delete(); } catch (_) {} }
+  goLobby();
+}
+function upsertMe(patch) {
+  return enqueue("player", () => myPlayer()
+    ? playerRef().update(patch)
+    : playerRef().set({ name: S.myName, joinedAt: Date.now(), role: "voter", votedRound: -1, value: null, valueRound: -1, ...patch }));
+}
+async function copyInvite() {
+  const link = location.origin + location.pathname + "#" + S.roomId;
+  try { await navigator.clipboard.writeText(link); toast("Invite link copied."); }
+  catch (_) { toast(link); }
+}
+
+/* ---------- voting ---------- */
+function vote(card) {
+  const r = S.room;
+  if (!r || !canVote()) return;
+  const same = S.myPick && S.myPick.round === r.round && S.myPick.value === card;
+  const value = same ? null : card;
+  S.myPick = { round: r.round, value };
+  renderRoom();
+  enqueue("pick", () => pickRef().set({ round: r.round, value, at: Date.now() })).catch(() => {});
+  // Before reveal only the fact of voting is shared; the value stays in the private pick.
+  const patch = { votedRound: value == null ? -1 : r.round };
+  if (r.revealed) { patch.value = value; patch.valueRound = value == null ? -1 : r.round; S.sharedKey = r.round + "|" + value; }
+  upsertMe(patch).catch(() => {});
+}
+// On reveal each client publishes its own sealed pick to the shared player doc.
+function maybeSharePick() {
+  const r = S.room, p = myPlayer(), pick = S.myPick;
+  if (!r || !p || !S.canWrite || !r.revealed) return;
+  if (!pick || pick.round !== r.round || pick.value == null) return;
+  if (p.valueRound === r.round && p.value === pick.value) return;
+  const key = r.round + "|" + pick.value;
+  if (S.sharedKey === key) return;
+  S.sharedKey = key;
+  upsertMe({ value: pick.value, valueRound: r.round, votedRound: r.round }).catch(() => { S.sharedKey = null; });
+}
+function updateRoom(patch) { return enqueue("room", () => roomRef().update({ ...patch, updatedAt: Date.now() })).catch(() => {}); }
+const reveal = () => updateRoom({ revealed: true });
+const revote = () => updateRoom({ round: S.room.round + 1, revealed: false });
+function toggleRole() {
+  const p = myPlayer();
+  upsertMe({ role: p && p.role === "observer" ? "voter" : "observer" }).catch(() => {});
+}
+function kick(uid) { enqueue("kick-" + uid, () => playerRef(uid).delete()).catch(() => {}); }
+
+async function saveAndNext(e) {
+  e.preventDefault();
+  const r = S.room;
+  if (!r || !r.revealed) return;
+  const votes = {};
+  revealedVoters().forEach((p) => { votes[p.id] = { value: p.value, name: p.name || "" }; });
+  const final = $("finalSelect").value;
+  const next = $("nextStory").value.trim();
+  try {
+    // Keyed by round so two people pressing at once write one entry.
+    await enqueue("hist", () => S.db.doc("rooms/" + r.id + "/history/r" + r.round).set({ story: r.story || "", final, round: r.round, deck: r.deck, votes, at: Date.now(), by: S.meId }));
+    await updateRoom({ round: r.round + 1, revealed: false, story: next });
+    $("nextStory").value = "";
+  } catch (_) {}
+}
+function deleteHistory(id) { enqueue("hist-" + id, () => S.db.doc("rooms/" + S.roomId + "/history/" + id).delete()).catch(() => {}); }
+
+/* ---------- derived ---------- */
+const voters = () => S.players.filter((p) => p.role !== "observer");
+const hasVoted = (p) => p.votedRound === S.room?.round;
+const revealedVoters = () => voters().filter((p) => p.valueRound === S.room?.round && p.value != null);
+
+function computeStats(values, deckKey) {
+  const cards = (DECKS[deckKey] || DECKS.fib).cards;
+  const ordered = values.filter(isOrdinal);
+  const idx = ordered.map((v) => cards.indexOf(v)).filter((i) => i >= 0);
+  const nums = ordered.map(num).filter((n) => n != null);
+  let avg = null, median = null, suggested = null;
+  if (deckKey !== "tshirt" && nums.length) {
+    avg = nums.reduce((a, b) => a + b, 0) / nums.length;
+    const s = [...nums].sort((a, b) => a - b), m = s.length >> 1;
+    median = s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+    let bd = Infinity;
+    // Ties go to the higher card: under-estimating hurts more than over-estimating.
+    for (const c of cards) { const n = num(c); if (n == null) continue; const d = Math.abs(n - avg); if (d <= bd + 1e-9) { suggested = c; bd = d; } }
+  } else if (idx.length) {
+    let best = -1, bc = 0;
+    for (const i of new Set(idx)) { const c = idx.filter((x) => x === i).length; if (c > bc || (c === bc && i > best)) { best = i; bc = c; } }
+    suggested = cards[best];
+  }
+  const lo = idx.length ? Math.min(...idx) : -1, hi = idx.length ? Math.max(...idx) : -1;
+  return { avg, median, suggested, spread: idx.length ? hi - lo : 0, low: cards[lo], high: cards[hi], consensus: ordered.length > 1 && new Set(ordered).size === 1, count: values.length };
+}
+
+/* ---------- render ---------- */
+function buildStatic() {
+  const sel = $("roomDeck");
+  for (const [k, d] of Object.entries(DECKS)) sel.append(h("option", { value: k }, d.label + " (" + d.cards.filter(isOrdinal).slice(0, 5).join(", ") + " …)"));
+  const fan = $("fan");
+  ["1", "2", "3", "5", "8", null].forEach((v) => fan.append(cardEl(v, { cls: "big" + (v == null ? " back" : "") })));
+}
+
+function renderAll() {
+  const needName = !S.myName || S.editingName;
+  const inRoom = !!S.roomId && !needName;
+  $("nameGate").hidden = !needName;
+  $("lobby").hidden = needName || inRoom;
+  $("roomView").hidden = !inRoom;
+  $("main").classList.toggle("in-room", inRoom);
+  if (needName && document.activeElement !== $("nameInput")) $("nameInput").value = S.myName;
+  renderTop();
+  renderNotice();
+  if (inRoom) renderRoom();
+  else { $("handbar").hidden = true; if (!needName) renderLobby(); }
+}
+
+function renderTop() {
+  const crumb = $("crumb"); crumb.replaceChildren();
+  if (S.roomId) crumb.append(h("span", { class: "sep", "aria-hidden": "true" }, "/"), h("strong", {}, S.room ? S.room.name : "Loading room…"), S.room ? h("span", { class: "chip" }, deckOf(S.room).label) : null);
+  const me = $("meChip"); me.replaceChildren();
+  if (S.myName && S.meId) me.append(avatar(S.meId), h("span", { class: "nm" }, S.myName),
+    h("button", { class: "btn ghost", type: "button", onclick: () => { S.editingName = true; renderAll(); $("nameInput").focus(); } }, "Rename"));
+}
+
+function renderNotice() {
+  const n = $("notice");
+  n.textContent = S.problem; n.hidden = !S.problem;
+}
+
+function renderLobby() {
+  const list = $("roomList");
+  $("createBtn").disabled = !S.db;
+  if (S.rooms == null) return;
+  $("roomCount").textContent = S.rooms.length ? S.rooms.length + (S.rooms.length === 1 ? " room" : " rooms") : "";
+  list.replaceChildren();
+  if (!S.rooms.length) {
+    list.append(h("div", { class: "empty" }, S.db ? "No rooms yet. Open one above, then share its invite link with your team." : "Rooms appear here once the database is connected."));
+    return;
+  }
+  for (const r of S.rooms) {
+    const mine = r.createdBy && r.createdBy === S.meId;
+    const armed = S.lobbyDeleteArm === r.id;
+    list.append(h("div", { class: "room-card", role: "button", tabindex: "0", onclick: () => enterRoom(r.id), onkeydown: (e) => { if (e.key === "Enter") enterRoom(r.id); } },
+      h("h3", {}, r.name || "Untitled room"),
+      h("div", { class: "story-line" }, r.story ? "Now: " + r.story : "No story on the table yet"),
+      h("div", { class: "room-meta" },
+        h("span", { class: "chip" + (r.revealed ? "" : " live") }, r.revealed ? "Cards revealed" : "Round " + (r.round || 1)),
+        h("span", {}, deckOf(r).label),
+        h("span", {}, "· " + ago(r.updatedAt)),
+        r.createdBy ? h("span", { style: "display:flex;align-items:center;gap:6px;margin-left:auto" }, avatar(r.createdBy), nameOf(r.createdBy)) : null),
+      mine ? h("div", {}, h("button", { class: "btn ghost danger", type: "button", onclick: (e) => { e.stopPropagation(); deleteRoom(r.id); } }, armed ? "Click again to delete for everyone" : "Delete room")) : null));
+  }
+}
+
+function renderRoom() {
+  if (!S.roomId) return;
+  const r = S.room;
+  const deck = deckOf(r);
+  const story = $("storyInput");
+  if (document.activeElement !== story) story.value = r ? r.story || "" : "";
+  story.disabled = !S.canWrite || !r;
+  $("roundChip").textContent = r ? "Round " + r.round : "";
+
+  const seats = $("seats"); seats.replaceChildren();
+  const vs = voters(), done = vs.filter(hasVoted);
+  const stats = r && r.revealed ? computeStats(revealedVoters().map((p) => p.value), r.deck) : null;
+  const justRevealed = r && r.revealed && S.revealSeen !== r.round;
+  if (!S.players.length) seats.append(h("div", { class: "status" }, r ? "Nobody has taken a seat yet." : "Loading the table…"));
+  for (const p of S.players) {
+    const isMe = p.id === S.meId, obs = p.role === "observer";
+    let card;
+    if (obs) card = cardEl(null, { cls: "slot" });
+    else if (r && r.revealed && p.valueRound === r.round && p.value != null) card = cardEl(p.value, { cls: justRevealed ? "flip" : "" });
+    else if (r && r.revealed && hasVoted(p)) card = cardEl("…", { cls: "wait", noIx: true });
+    else if (isMe && S.myPick && r && S.myPick.round === r.round && S.myPick.value != null) card = cardEl(S.myPick.value);
+    else if (hasVoted(p)) card = cardEl(null, { cls: "back" });
+    else card = cardEl(null, { cls: "slot" });
+    const extreme = stats && stats.spread >= 3 && !obs && p.valueRound === r.round ? (p.value === stats.low ? " low" : p.value === stats.high ? " high" : "") : "";
+    seats.append(h("div", { class: "seat" + extreme },
+      card,
+      h("div", { class: "who" }, avatar(p.id), h("span", {}, isMe ? "You" : nameOf(p.id))),
+      obs ? h("div", { class: "tag" }, "Observing") : null,
+      !isMe ? h("button", { class: "kick", type: "button", title: "Remove from the table", "aria-label": "Remove " + nameOf(p.id) + " from the table", onclick: () => kick(p.id) }, "×") : null));
+  }
+  if (justRevealed) S.revealSeen = r.round;
+
+  const st = $("status"); st.replaceChildren();
+  if (r && !r.revealed) {
+    if (!vs.length) st.append("Waiting for voters to sit down.");
+    else if (done.length === vs.length) st.append(h("b", {}, "Everyone has voted."), " Reveal when ready.");
+    else st.append(h("b", { class: "mono" }, done.length + " of " + vs.length), " voted. Waiting on ", vs.filter((p) => !hasVoted(p)).map((p) => p.id === S.meId ? "you" : nameOf(p.id)).join(", "), ".");
+  } else if (r) st.append(h("b", {}, "Cards are face up."), " Talk it through, then save the estimate or re-vote.");
+  $("revealBtn").disabled = !r || r.revealed || !done.length;
+  $("revoteBtn").disabled = !r;
+  const me = myPlayer();
+  $("roleBtn").textContent = me && me.role === "observer" ? "Take a seat as voter" : "Sit out as observer";
+
+  $("results").hidden = !(r && r.revealed);
+  if (r && r.revealed) renderResults(r, stats);
+
+  const hist = $("hist"); hist.replaceChildren();
+  const finals = S.history.map((x) => num(x.final)).filter((n) => n != null);
+  const total = $("total"); total.replaceChildren();
+  if (S.history.length) {
+    total.append(finals.length ? h("span", { class: "mono" }, fmt(finals.reduce((a, b) => a + b, 0))) : null,
+      h("span", { class: "label" }, (finals.length ? "points · " : "") + S.history.length + (S.history.length === 1 ? " story" : " stories")));
+  } else hist.append(h("li", { class: "none" }, "Saved estimates collect here, newest first."));
+  for (const x of S.history) {
+    hist.append(h("li", {},
+      cardEl(x.final, { cls: "mini", noIx: true }),
+      h("div", { style: "min-width:0" }, h("div", { class: "t" }, x.story || "Untitled story"), h("div", { class: "m" }, Object.keys(x.votes || {}).length + " votes · " + ago(x.at))),
+      h("button", { class: "btn ghost del", type: "button", "aria-label": "Remove this estimate", title: "Remove", onclick: () => deleteHistory(x.id) }, "×")));
+  }
+
+  const showHand = !!r && canVote();
+  $("handbar").hidden = !showHand;
+  if (showHand) {
+    const hand = $("hand"); hand.replaceChildren();
+    const sel = S.myPick && S.myPick.round === r.round ? S.myPick.value : null;
+    for (const c of deck.cards) {
+      const b = cardEl(c, { button: true, cls: "big" + (sel === c ? " sel" : "") });
+      b.setAttribute("aria-pressed", sel === c ? "true" : "false");
+      b.addEventListener("click", () => vote(c));
+      hand.append(b);
+    }
+    $("handHint").textContent = sel == null ? "Pick a card. Nobody sees it until the reveal." : r.revealed ? "Changing your card now updates the results." : "Locked in face down. Tap it again to take it back.";
+  }
+}
+
+function renderResults(r, s) {
+  const cards = deckOf(r).cards;
+  const rv = revealedVoters();
+  const pending = voters().filter((p) => hasVoted(p) && !(p.valueRound === r.round && p.value != null)).length;
+  const statsEl = $("stats"); statsEl.replaceChildren();
+  const stat = (label, value, cls) => h("div", { class: "stat" }, h("span", { class: "label" }, label), h("span", { class: "v" + (cls ? " " + cls : "") }, value));
+  statsEl.append(
+    stat("Votes", String(rv.length) + (pending ? " +" + pending : "")),
+    r.deck === "tshirt" ? stat("Most common", s.suggested || "–") : stat("Average", fmt(s.avg)),
+    r.deck === "tshirt" ? stat("Range", s.low ? s.low + "–" + s.high : "–") : stat("Median", fmt(s.median)),
+    stat("Agreement", s.consensus ? "Full" : s.count < 2 ? "–" : s.spread >= 3 ? "Low" : "Close", s.consensus ? "ok" : s.spread >= 3 ? "warn" : ""));
+
+  const verdict = $("verdict"); verdict.replaceChildren();
+  if (s.consensus) verdict.append(h("div", { class: "verdict ok" }, "Consensus on " + cardLabel(s.suggested) + ". Save it and move on."));
+  else if (s.spread >= 3) {
+    const who = (v) => rv.filter((p) => p.value === v).map((p) => p.id === S.meId ? "you" : nameOf(p.id)).join(", ");
+    verdict.append(h("div", { class: "verdict warn" }, "Wide spread from " + s.low + " to " + s.high + ". Ask " + who(s.low) + " and " + who(s.high) + " to explain their cards, then re-vote."));
+  }
+  if (pending) verdict.append(h("div", { class: "status", style: "margin-top:8px" }, pending + (pending === 1 ? " card is" : " cards are") + " still turning over. A voter who closed the page can rejoin to reveal theirs."));
+
+  const dist = $("dist"); dist.replaceChildren();
+  const counts = new Map();
+  rv.forEach((p) => counts.set(p.value, [...(counts.get(p.value) || []), p.id]));
+  const max = Math.max(1, ...[...counts.values()].map((a) => a.length));
+  for (const c of cards) {
+    const ids = counts.get(c);
+    if (!ids) continue;
+    dist.append(h("div", { class: "dist-row" },
+      cardEl(c, { cls: "mini", noIx: true }),
+      h("div", { class: "bar" }, h("i", { class: ids.length === max ? "top" : "", style: "width:" + (ids.length / max * 100) + "%" }), h("span", { class: "names" }, ids.map((id) => id === S.meId ? "You" : nameOf(id)).join(", "))),
+      h("span", { class: "mono", style: "text-align:right" }, ids.length)));
+  }
+
+  const sel = $("finalSelect");
+  if (S.finalRound !== r.round + ":" + r.deck) {
+    sel.replaceChildren(...cards.filter((c) => c !== BREAK).map((c) => h("option", { value: c }, c)));
+    S.finalRound = r.round + ":" + r.deck;
+    S.finalTouched = false;
+  }
+  if (!S.finalTouched && s.suggested) sel.value = s.suggested;
+}
+
+/* ---------- wiring ---------- */
+$("nameForm").addEventListener("submit", setName);
+$("createForm").addEventListener("submit", createRoom);
+$("homeBtn").addEventListener("click", () => { S.editingName = false; goLobby(); });
+$("leaveBtn").addEventListener("click", leaveRoom);
+$("inviteBtn").addEventListener("click", copyInvite);
+$("revealBtn").addEventListener("click", reveal);
+$("revoteBtn").addEventListener("click", revote);
+$("roleBtn").addEventListener("click", toggleRole);
+$("saveForm").addEventListener("submit", saveAndNext);
+$("finalSelect").addEventListener("change", () => { S.finalTouched = true; });
+$("storyInput").addEventListener("change", (e) => { if (S.room && e.target.value.trim() !== (S.room.story || "")) updateRoom({ story: e.target.value.trim() }); });
+$("storyInput").addEventListener("keydown", (e) => { if (e.key === "Enter") e.target.blur(); });
+window.addEventListener("hashchange", () => {
+  const id = hashRoom();
+  if (id && id !== S.roomId) enterRoom(id);
+  else if (!id && S.roomId) goLobby();
+});
+setInterval(() => { if (!S.roomId && S.rooms && S.rooms.length) renderLobby(); }, 60000);
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function shortText(v, max) { return v is string && v.size() <= max; }
+
+    match /rooms/{roomId} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.createdBy == request.auth.uid
+        && shortText(request.resource.data.name, 60)
+        && shortText(request.resource.data.story, 200);
+      // Anyone at the table drives the round, but nobody can take over the room's creator.
+      allow update: if signedIn()
+        && request.resource.data.createdBy == resource.data.createdBy
+        && shortText(request.resource.data.story, 200);
+      allow delete: if signedIn() && resource.data.createdBy == request.auth.uid;
+
+      match /players/{uid} {
+        allow read: if signedIn();
+        allow create, update: if signedIn() && uid == request.auth.uid
+          && shortText(request.resource.data.name, 40);
+        // Any player may clear a seat left behind by someone who closed the page.
+        allow delete: if signedIn();
+      }
+
+      match /history/{entryId} {
+        allow read, delete: if signedIn();
+        allow create, update: if signedIn() && shortText(request.resource.data.story, 200);
+      }
+    }
+
+    // Sealed picks: only their owner reads them, until each client copies its own value at reveal.
+    match /users/{uid}/picks/{roomId} {
+      allow read, write: if signedIn() && uid == request.auth.uid;
+    }
+  }
+}
